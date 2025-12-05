@@ -5,9 +5,9 @@ from models import db
 app = Flask(__name__)
 
 # --- Configuración de la base de datos ---
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/prueba_servilocal'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/prueba_servilocal'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:LTfMFcXrRlDTrUOUKOaxilTeczzAEpZa@switchyard.proxy.rlwy.net:55122/prueba_servilocal'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:LTfMFcXrRlDTrUOUKOaxilTeczzAEpZa@switchyard.proxy.rlwy.net:55122/prueba_servilocal'
 
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

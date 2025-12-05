@@ -10,12 +10,14 @@ import mercadopago
 from mercadopago.config import RequestOptions
 
 
+
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:4200"}})
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/prueba_servilocal'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/prueba_servilocal'
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:LTfMFcXrRlDTrUOUKOaxilTeczzAEpZa@switchyard.proxy.rlwy.net:55122/prueba_servilocal'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:LTfMFcXrRlDTrUOUKOaxilTeczzAEpZa@switchyard.proxy.rlwy.net:55122/prueba_servilocal'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.config['JWT_SECRET_KEY'] = 'clave_super_secreta_123'  
@@ -143,6 +145,8 @@ def processPayment():
         "data": payment
     }
     return jsonify(respuesta), 400
+
+#################################
 
 
 
