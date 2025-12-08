@@ -9,7 +9,6 @@ import bcrypt
 import mercadopago
 from mercadopago.config import RequestOptions
 
-
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:4200"}})
 
@@ -199,16 +198,17 @@ def login():
     if not usuario:
         return jsonify({"status": "error", "mensaje": "Usuario o rol incorrecto"}), 401
 
-    # Validar contraseña cifrada
     if not bcrypt.checkpw(contrasena.encode('utf-8'), usuario.contrasena.encode('utf-8')):
         return jsonify({"status": "error", "mensaje": "Contraseña incorrecta"}), 401
 
-    # Crear token
-    token = create_access_token(identity={
-        "id_usuario": usuario.id_usuario,
-        "nombre": usuario.nombre,
-        "rol": usuario.rol
-    })
+    # 🔥 TOKEN CORRECTO (identity debe ser STRING)
+    token = create_access_token(
+        identity=str(usuario.id_usuario),     # sub = id del usuario
+        additional_claims={                  # datos adicionales
+            "nombre": usuario.nombre,
+            "rol": usuario.rol
+        }
+    )
 
     return jsonify({
         "status": "success",
@@ -223,14 +223,43 @@ def login():
 
 
 
-@app.route('/auth/perfil', methods=['GET'])
+
+@app.route('/auth/perfil', methods=['GET', 'PUT'])
 @jwt_required()
 def perfil_usuario():
-    current_user = get_jwt_identity()
-    return jsonify({
-        "mensaje": "Perfil del usuario autenticado",
-        "usuario": current_user
-    }), 200
+
+    # identity ahora es solo un string con el ID del usuario
+    identity = get_jwt_identity()
+    user = Usuarios.query.get(int(identity))  # <--- ESTA ES LA LÍNEA CORRECTA
+
+    if not user:
+        return jsonify({"mensaje": "Usuario no encontrado"}), 404
+
+    # GET: Obtener perfil
+    if request.method == 'GET':
+        return jsonify({
+            "usuario": user.to_dict(),
+            "status": "success"
+        }), 200
+
+    # PUT: Actualizar perfil
+    if request.method == 'PUT':
+        data = request.get_json()
+
+        user.nombre = data.get("nombre", user.nombre)
+        user.apellidos = data.get("apellidos", user.apellidos)
+        user.telefono = data.get("telefono", user.telefono)
+        user.direccion = data.get("direccion", user.direccion)
+
+        db.session.commit()
+
+        return jsonify({
+            "mensaje": "Perfil actualizado",
+            "usuario": user.to_dict(),
+            "status": "success"
+        }), 200
+
+
 
 
 @app.route('/store/store', methods=['GET'])
