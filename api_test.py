@@ -10,8 +10,6 @@ import mercadopago
 from mercadopago.config import RequestOptions
 
 
-
-
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:4200"}})
 
