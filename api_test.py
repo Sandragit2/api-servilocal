@@ -4,20 +4,10 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-#from models import db, Usuarios, Trabajadores
-from models import (
-    db,
-    Usuarios,
-    Trabajadores,
-    SolicitudesServicios,
-    Pagos,
-    Notificaciones
-)
+from models import db, Usuarios, Trabajadores
 import bcrypt
 import mercadopago
 from mercadopago.config import RequestOptions
-from datetime import datetime
-
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -39,6 +29,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db.init_app(app)
 migrate = Migrate(app, db)
 sdk = mercadopago.SDK("TEST-3294946827363641-112610-9ab12ed9107ea78b76a49b0fee76f597-1132859484")
+
 # es lo que se agrego
 @app.route("/preferencemp", methods=["GET"])
 def crear_preferencia():
@@ -53,9 +44,9 @@ def crear_preferencia():
         ],
 
         "back_urls": {
-            "success": "https://servilocal.pages.dev/success",
-            "failure": "https://servilocal.pages.dev/failure",
-            "pending": "https://servilocal.pages.dev/pending"
+            "success": "https://servilocal.com/success",
+            "failure": "https://servilocal.com/failure",
+            "pending": "https://servilocal.com/pending"
         },
         "auto_return": "approved",
     }
@@ -80,106 +71,80 @@ def crear_preferencia():
 
 ######lo nuevo
 @app.route('/processpayment', methods=['POST'])
-@jwt_required()
 def processPayment():
     parameters = request.get_json(silent=True)
 
     payment = parameters.get('formdata')
+    idcarrito = parameters.get('idfoliocarrito')
     iddevice = parameters.get('iddevice')
-    trabajador = parameters.get("trabajador")
 
-    if not payment or not payment.get('token'):
+    if not payment.get('token'):
         return jsonify({"error": "Faltan datos obligatorios"}), 400
 
+    # PROCESAR LA COMPRA Y REGISTRAR/MODIFICAR LA BD SEGÚN LA LÓGICA DE NEGOCIO
     amount = payment.get('transaction_amount')
     email = payment.get('payer').get('email')
-
-    payment_data = {
+    #segun nuestro proceso de negocio, tenemos quen ajustarlo segun nuestro proyecto
+    payment_data = { 
         "transaction_amount": float(amount),
         "token": payment.get('token'),
         "payment_method_id": payment.get('payment_method_id'),
         "issuer_id": payment.get('issuer_id'),
-        "description": "Pago por contratación de servicio",
-        "installments": 1,
+        "description": "Descripción del pago a realizar",
+        "installments": 1,  # Pago en una sola exhibición
+        "statement_descriptor": "Description",
         "payer": {
-            "first_name": "Cliente",
-            "last_name": "ServiLocal",
+            "first_name": "Jonathan", #esto es jalado de la base de datos
+            "last_name": "Guevara",
             "email": email,
         },
-        "additional_info": {
+        "additional_info": {  #items de lo que nosostros estamos vendiendo, de acuerdo a la logica del producto de la tienda
             "items": [
                 {
-                    "title": trabajador.get("categoria"),
+                    "title": "Nombre del Producto",
                     "quantity": 1,
                     "unit_price": float(amount)
                 }
             ]
-        }
+        },
+        "capture": True,
+        "binary_mode": False,
+        # "device_id": iddevice  # si es necesario activarlo después
     }
 
+    # OPCIONES DE REQUEST PARA MERCADOPAGO
     request_options = RequestOptions()
+
     import uuid
+    UUID = str(uuid.uuid4())
+
     request_options.custom_headers = {
-        "X-Idempotency-Key": str(uuid.uuid4()),
+        "X-Idempotency-Key": UUID,
         "X-meli-session-id": iddevice
     }
 
+    # EJECUTAR EL PAGO, guardar lo que mercado pago nos diga
     result = sdk.payment().create(payment_data, request_options)
-    paymentMP = result.get("response", {})
-
-    # -------------------------------------------------------
-    # AQUI DENTRO VA EL IF. NO FUERA.
-    # -------------------------------------------------------
-    if paymentMP.get("status") == "approved" and paymentMP.get("status_detail") == "accredited":
-
-        identity = get_jwt_identity()
-        id_usuario = int(identity)
-
-        id_trabajador = trabajador.get("id_trabajador")
-
-        nueva_solicitud = SolicitudesServicios(
-            fecha_solicitud=datetime.now(),
-            direccion_servicio="",
-            descripcion_servicio=f"Solicitud para {trabajador.get('categoria')}",
-            id_usuario=id_usuario,
-            id_servicio=id_trabajador
-        )
-        db.session.add(nueva_solicitud)
-        db.session.commit()
-
-        nuevo_pago = Pagos(
-            total=float(amount),
-            fecha_pago=datetime.now(),
-            id_solicitud=nueva_solicitud.id_solicitud,
-            id_usuario=id_usuario
-        )
-        db.session.add(nuevo_pago)
-        db.session.commit()
-
-        nueva_notificacion = Notificaciones(
-            tipo_notificacion="nueva_contratacion",
-            mensaje=f"Tienes una nueva contratación. Solicitud #{nueva_solicitud.id_solicitud}",
-            fecha_creacion=datetime.now(),
-            id_trabajador=id_trabajador
-        )
-        db.session.add(nueva_notificacion)
-        db.session.commit()
-
-        return jsonify({
-            "mensaje": "Pago aprobado y solicitud creada",
+    payment = result.get("response", {})
+    
+    #hasta aqui ya podriamos cobrar, pero no se cobra por lo de la validacion de las tarjetas de prueba de mercado
+    # SI EL PAGO SE APRUEBA, nos devuelve el status y podemos continuar con alguna notificacion o seguir el proceso
+    # podemos cambiar lo de si fue exitoso o con error aqui 
+    if payment.get("status") == "approved" and payment.get("status_detail") == "accredited":
+        respuesta = {
+            "mensaje": "Mensaje de Éxito",
             "status": "success",
-            "solicitud": nueva_solicitud.id_solicitud,
-            "data": paymentMP
-        }), 200
+            "data": payment
+        }
+        return jsonify(respuesta), 200
 
-    # Pago fallido
-    return jsonify({
-        "mensaje": "Pago rechazado",
+    # PAGO RECHAZADO O ERROR
+    respuesta = {
+        "mensaje": "Mensaje de Error",
         "status": "error",
-        "data": paymentMP
-    }), 400
-
-
+        "data": payment
+    }
+    return jsonify(respuesta), 400
 
 #################################
 
