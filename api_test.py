@@ -39,7 +39,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db.init_app(app)
 migrate = Migrate(app, db)
 sdk = mercadopago.SDK("TEST-3294946827363641-112610-9ab12ed9107ea78b76a49b0fee76f597-1132859484")
-
 # es lo que se agrego
 @app.route("/preferencemp", methods=["GET"])
 def crear_preferencia():
@@ -54,9 +53,9 @@ def crear_preferencia():
         ],
 
         "back_urls": {
-            "success": "https://servilocal.com/success",
-            "failure": "https://servilocal.com/failure",
-            "pending": "https://servilocal.com/pending"
+            "success": "https://servilocal.pages.dev/success",
+            "failure": "https://servilocal.pages.dev/failure",
+            "pending": "https://servilocal.pages.dev/pending"
         },
         "auto_return": "approved",
     }
