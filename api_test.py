@@ -17,7 +17,6 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/prueba_servilocal'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:dgIevaYtorkuLtaSqvlhwBcQnfOlUrKu@nozomi.proxy.rlwy.net:20265/prueba_servilocal'
-
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:LTfMFcXrRlDTrUOUKOaxilTeczzAEpZa@switchyard.proxy.rlwy.net:55122/prueba_servilocal'
 #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:DMqnooIJVoIyfkwJOhIzLZUOnJSOVvLg@shuttle.proxy.rlwy.net:21890/prueba_servilocal'
 
