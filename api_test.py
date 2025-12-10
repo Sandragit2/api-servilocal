@@ -9,6 +9,8 @@ from models import db, Usuarios, Trabajadores
 import bcrypt
 import mercadopago
 from mercadopago.config import RequestOptions
+from models import BitacoraAccesos
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -30,6 +32,25 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db.init_app(app)
 migrate = Migrate(app, db)
 sdk = mercadopago.SDK("TEST-3294946827363641-112610-9ab12ed9107ea78b76a49b0fee76f597-1132859484")
+
+def registrar_log(id_usuario, accion):
+    try:
+        ip = request.remote_addr
+        user_agent = request.headers.get("User-Agent")
+
+        log = BitacoraAccesos(
+            id_usuario=id_usuario,
+            accion=accion,
+            ip=ip,
+            user_agent=user_agent
+        )
+
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        print("ERROR BITÁCORA:", e)
+
+
 
 # es lo que se agrego
 @app.route("/preferencemp", methods=["GET"])
@@ -214,6 +235,9 @@ def login():
         }
     )
 
+    registrar_log(usuario.id_usuario, "Inicio de sesión")
+
+
     return jsonify({
         "status": "success",
         "mensaje": f"Bienvenido {usuario.nombre}",
@@ -256,6 +280,9 @@ def perfil_usuario():
         user.direccion = data.get("direccion", user.direccion)
 
         db.session.commit()
+
+        registrar_log(user.id_usuario, "Actualizó su perfil")
+
 
         return jsonify({
             "mensaje": "Perfil actualizado",

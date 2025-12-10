@@ -244,3 +244,25 @@ class Notificaciones(db.Model):
     usuario = db.relationship('Usuarios', back_populates='notificaciones')
     trabajador = db.relationship('Trabajadores', back_populates='notificaciones')
 
+
+class BitacoraAccesos(db.Model):
+    __tablename__ = "bitacora_accesos"
+
+    id_log = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuarios.id_usuario'))
+    accion = db.Column(db.String(255), nullable=False)
+    ip = db.Column(db.String(50))
+    user_agent = db.Column(db.String(300))
+    fecha = db.Column(db.DateTime, server_default=db.func.now())
+
+    usuario = db.relationship('Usuarios', backref='logs')
+
+    def to_dict(self):
+        return {
+            "id_log": self.id_log,
+            "usuario": self.usuario.nombre if self.usuario else "Sistema",
+            "accion": self.accion,
+            "ip": self.ip,
+            "user_agent": self.user_agent,
+            "fecha": self.fecha
+        }
