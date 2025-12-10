@@ -1,3 +1,4 @@
+from fileinput import filename
 import os
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -328,6 +329,25 @@ def get_trabajador_detalle(id_trabajador):
     }), 200
 
 
+@app.route('/store/trabajador/usuario/<int:id_usuario>', methods=['GET'])
+def get_trabajador_por_usuario(id_usuario):
+    trabajador = Trabajadores.query.filter_by(id_usuario=id_usuario).first()
+
+    if not trabajador:
+        return jsonify({
+            "status": "error",
+            "mensaje": "No existe trabajador asociado a este usuario"
+        }), 404
+
+    return jsonify({
+        "status": "success",
+        "trabajador": trabajador.to_dict()
+    }), 200
+
+
+
+
+
 @app.route('/upload_foto/<int:trabajador_id>', methods=['POST'])
 def upload_foto(trabajador_id):
     if 'foto_trabajador' not in request.files:
@@ -345,7 +365,7 @@ def upload_foto(trabajador_id):
     if not trabajador:
         return jsonify({"mensaje": "Trabajador no encontrado"}), 404
 
-    trabajador.foto_trabajador = f"static/uploads/{filename}"
+    trabajador.foto_trabajador = f"{request.host_url}uploads/{filename}"
     db.session.commit()
 
     return jsonify({
